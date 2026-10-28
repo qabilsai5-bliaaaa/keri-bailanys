@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сабақ бойынша кері байланыс</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Teacher Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Smooth background transitions */
+        .bg-gradient-transition {
+            transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Custom Gradients for Options */
+        .theme-default {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        }
+        
+        .theme-opt-1 {
+            background: linear-gradient(135deg, #064e3b 0%, #0d9488 50%, #115e59 100%);
+        }
+
+        .theme-opt-2 {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 50%, #0369a1 100%);
+        }
+
+        .theme-opt-3 {
+            background: linear-gradient(135deg, #78350f 0%, #d97706 50%, #b45309 100%);
+        }
+
+        .theme-opt-4 {
+            background: linear-gradient(135deg, #581c87 0%, #ea580c 50%, #9333ea 100%);
+        }
+
+        .theme-opt-5 {
+            background: linear-gradient(135deg, #4c0519 0%, #be123c 50%, #881337 100%);
+        }
+
+        /* Glassmorphic Cards */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-6px) scale(1.02);
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-card:active {
+            transform: translateY(2px) scale(0.98);
+        }
+
+        /* Ripple Animation for Smartboard touch feedback */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple-effect 0.6s linear;
+            background-color: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        @keyframes ripple-effect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Pulse glow animation for total count */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body id="app-body" class="theme-default bg-gradient-transition min-h-screen text-white flex flex-col justify-between overflow-x-hidden select-none">
+
+    <!-- Header / Control Navigation Bar -->
+    <header class="p-4 md:p-6 w-full max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 z-10">
+        <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-2xl glass-panel flex items-center justify-center text-emerald-400 text-2xl font-bold shadow-lg">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300">
+                    Сабақ бойынша кері байланыс
+                </h1>
+                <p class="text-xs md:text-sm text-slate-300 font-medium">
+                    Жоғарғы сынып оқушыларына арналған интерактивті тақта жүйесі
+                </p>
+            </div>
+        </div>
+
+        <!-- Mode Switches & Controls -->
+        <div class="flex items-center gap-3 glass-panel p-1.5 rounded-2xl">
+            <button id="btn-student-mode" onclick="switchMode('student')" class="px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-white/20 text-white shadow-md">
+                <i class="fa-solid fa-hand-pointer"></i>
+                <span class="hidden sm:inline">Оқушы терезесі</span>
+            </button>
+            <button id="btn-teacher-mode" onclick="switchMode('teacher')" class="px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 text-slate-300 hover:text-white hover:bg-white/10">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span class="hidden sm:inline">Мұғалім статистикасы</span>
+            </button>
+            <div class="h-6 w-px bg-white/20 my-auto"></div>
+            <button onclick="toggleFullscreen()" class="p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition" title="Толық экран режимі">
+                <i class="fa-solid fa-expand text-lg"></i>
+            </button>
+            <button onclick="confirmReset()" class="p-2.5 rounded-xl text-rose-300 hover:text-rose-100 hover:bg-rose-500/20 transition" title="Дауыстарды нөлдеу">
+                <i class="fa-solid fa-rotate-right text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN STUDENT VIEW -->
+    <main id="student-view" class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center items-center z-10 transition-opacity duration-300">
+        
+        <!-- Context & Subtitle -->
+        <div class="text-center max-w-3xl mb-8 md:mb-12">
+            <span class="px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/10 border border-white/20 text-emerald-300 inline-block mb-3">
+                Өз деңгейіңді белгіле
+            </span>
+            <h2 class="text-2xl md:text-4xl font-bold text-white tracking-wide leading-tight">
+                Бүгінгі сабақтан алған әсеріңіз бен меңгеру деңгейіңізді белгілеңіз
+            </h2>
+        </div>
+
+        <!-- 5 Interactive Dynamic Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-5 w-full">
+            
+            <!-- Option 1 -->
+            <button onclick="submitVote(0, 'theme-opt-1', event)" 
+                    onmouseenter="previewTheme('theme-opt-1')" 
+                    onmouseleave="resetThemePreview()"
+                    class="glass-card relative overflow-hidden rounded-3xl p-6 text-left flex flex-col justify-between h-64 md:h-80 group cursor-pointer border-t-4 border-t-emerald-400">
+                <div class="flex justify-between items-start w-full">
+                    <span class="w-12 h-12 rounded-2xl bg-emerald-500/30 text-emerald-300 flex items-center justify-center text-2xl font-bold border border-emerald-400/30 group-hover:scale-110 transition-transform">
+                        1
+                    </span>
+                    <span class="text-3xl filter drop-shadow">🚀</span>
+                </div>
+                <div>
+                    <h3 class="text-lg md:text-xl font-bold text-white mb-2 leading-snug">
+                        Толық түсіндім
+                    </h3>
+                    <p class="text-xs md:text-sm text-emerald-100/80 leading-relaxed">
+                        Тақырыпты терең меңгердім, басқаларға түсіндіре аламын.
+                    </p>
+                </div>
+                <div class="flex items-center text-xs font-semibold text-emerald-300 group-hover:translate-x-1 transition-transform">
+                    <span>Таңдау үшін басыңыз</span>
+                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                </div>
+            </button>
+
+            <!-- Option 2 -->
+            <button onclick="submitVote(1, 'theme-opt-2', event)" 
+                    onmouseenter="previewTheme('theme-opt-2')" 
+                    onmouseleave="resetThemePreview()"
+                    class="glass-card relative overflow-hidden rounded-3xl p-6 text-left flex flex-col justify-between h-64 md:h-80 group cursor-pointer border-t-4 border-t-sky-400">
+                <div class="flex justify-between items-start w-full">
+                    <span class="w-12 h-12 rounded-2xl bg-sky-500/30 text-sky-300 flex items-center justify-center text-2xl font-bold border border-sky-400/30 group-hover:scale-110 transition-transform">
+                        2
+                    </span>
+                    <span class="text-3xl filter drop-shadow">💡</span>
+                </div>
+                <div>
+                    <h3 class="text-lg md:text-xl font-bold text-white mb-2 leading-snug">
+                        Жақсы меңгердім
+                    </h3>
+                    <p class="text-xs md:text-sm text-sky-100/80 leading-relaxed">
+                        Негізгі ұғымдар түсінікті, бірақ практика қажет.
+                    </p>
+                </div>
+                <div class="flex items-center text-xs font-semibold text-sky-300 group-hover:translate-x-1 transition-transform">
+                    <span>Таңдау үшін басыңыз</span>
+                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                </div>
+            </button>
+
+            <!-- Option 3 -->
+            <button onclick="submitVote(2, 'theme-opt-3', event)" 
+                    onmouseenter="previewTheme('theme-opt-3')" 
+                    onmouseleave="resetThemePreview()"
+                    class="glass-card relative overflow-hidden rounded-3xl p-6 text-left flex flex-col justify-between h-64 md:h-80 group cursor-pointer border-t-4 border-t-amber-400">
+                <div class="flex justify-between items-start w-full">
+                    <span class="w-12 h-12 rounded-2xl bg-amber-500/30 text-amber-300 flex items-center justify-center text-2xl font-bold border border-amber-400/30 group-hover:scale-110 transition-transform">
+                        3
+                    </span>
+                    <span class="text-3xl filter drop-shadow">🤔</span>
+                </div>
+                <div>
+                    <h3 class="text-lg md:text-xl font-bold text-white mb-2 leading-snug">
+                        Сұрақтарым бар
+                    </h3>
+                    <p class="text-xs md:text-sm text-amber-100/80 leading-relaxed">
+                        Кейбір тұстар түсініксіз, қосымша қайталау керек.
+                    </p>
+                </div>
+                <div class="flex items-center text-xs font-semibold text-amber-300 group-hover:translate-x-1 transition-transform">
+                    <span>Таңдау үшін басыңыз</span>
+                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                </div>
+            </button>
+
+            <!-- Option 4 -->
+            <button onclick="submitVote(3, 'theme-opt-4', event)" 
+                    onmouseenter="previewTheme('theme-opt-4')" 
+                    onmouseleave="resetThemePreview()"
+                    class="glass-card relative overflow-hidden rounded-3xl p-6 text-left flex flex-col justify-between h-64 md:h-80 group cursor-pointer border-t-4 border-t-purple-400">
+                <div class="flex justify-between items-start w-full">
+                    <span class="w-12 h-12 rounded-2xl bg-purple-500/30 text-purple-300 flex items-center justify-center text-2xl font-bold border border-purple-400/30 group-hover:scale-110 transition-transform">
+                        4
+                    </span>
+                    <span class="text-3xl filter drop-shadow">⚡</span>
+                </div>
+                <div>
+                    <h3 class="text-lg md:text-xl font-bold text-white mb-2 leading-snug">
+                        Материал күрделі
+                    </h3>
+                    <p class="text-xs md:text-sm text-purple-100/80 leading-relaxed">
+                        Тақырып аздап ауыр тиді, мұғалімнің көмегі керек.
+                    </p>
+                </div>
+                <div class="flex items-center text-xs font-semibold text-purple-300 group-hover:translate-x-1 transition-transform">
+                    <span>Таңдау үшін басыңыз</span>
+                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                </div>
+            </button>
+
+            <!-- Option 5 -->
+            <button onclick="submitVote(4, 'theme-opt-5', event)" 
+                    onmouseenter="previewTheme('theme-opt-5')" 
+                    onmouseleave="resetThemePreview()"
+                    class="glass-card relative overflow-hidden rounded-3xl p-6 text-left flex flex-col justify-between h-64 md:h-80 group cursor-pointer border-t-4 border-t-rose-400">
+                <div class="flex justify-between items-start w-full">
+                    <span class="w-12 h-12 rounded-2xl bg-rose-500/30 text-rose-300 flex items-center justify-center text-2xl font-bold border border-rose-400/30 group-hover:scale-110 transition-transform">
+                        5
+                    </span>
+                    <span class="text-3xl filter drop-shadow">🔄</span>
+                </div>
+                <div>
+                    <h3 class="text-lg md:text-xl font-bold text-white mb-2 leading-snug">
+                        Кайта қарау керек
+                    </h3>
+                    <p class="text-xs md:text-sm text-rose-100/80 leading-relaxed">
+                        Тақырыпты басынан бастап қайта зерттеуім қажет.
+                    </p>
+                </div>
+                <div class="flex items-center text-xs font-semibold text-rose-300 group-hover:translate-x-1 transition-transform">
+                    <span>Таңдау үшін басыңыз</span>
+                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                </div>
+            </button>
+
+        </div>
+    </main>
+
+    <!-- TEACHER ANALYTICS VIEW (Hidden by default) -->
+    <main id="teacher-view" class="hidden flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col z-10 transition-opacity duration-300">
+        <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="text-2xl md:text-3xl font-bold text-white">Сабақ нәтижелерінің аналитикасы</h2>
+                <p class="text-slate-300 text-sm">Нұсқалар бойынша оқушылардың белгілеу жиілігі</p>
+            </div>
+            <div class="glass-panel px-6 py-3 rounded-2xl flex items-center gap-4">
+                <div class="text-right">
+                    <p class="text-xs text-slate-300 uppercase font-semibold">Жалпы жауаптар</p>
+                    <p id="total-votes-count-dashboard" class="text-2xl font-black text-emerald-400">0</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 my-auto">
+            
+            <!-- Chart Container -->
+            <div class="lg:col-span-2 glass-panel rounded-3xl p-6 flex flex-col justify-center min-h-[360px]">
+                <canvas id="feedbackChart" class="w-full max-h-[350px]"></canvas>
+            </div>
+
+            <!-- Detailed Breakdown List -->
+            <div class="glass-panel rounded-3xl p-6 flex flex-col justify-between space-y-4">
+                <h3 class="text-lg font-bold text-white border-b border-white/10 pb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-sky-400"></i>
+                    Нәтижелердің таралуы
+                </h3>
+                
+                <div id="stats-list" class="space-y-3 flex-1 overflow-y-auto pr-1">
+                    <!-- Dynamic Rows Populated by JS -->
+                </div>
+
+                <button onclick="confirmReset()" class="w-full py-3 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-200 hover:bg-rose-500/30 font-semibold text-sm transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i>
+                    Жаңа сабақты бастау (Тазалау)
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Counter Status Bar -->
+    <footer class="p-4 md:p-6 w-full max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-xs text-slate-300 border-t border-white/10 gap-2 z-10">
+        <div class="flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Жүйе белсенді · Интерактивті тақтаға дайын</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="font-medium">Барлығы белгілеген оқушы саны: 
+                <strong id="footer-vote-counter" class="text-white text-sm font-bold ml-1">0</strong>
+            </span>
+        </div>
+    </footer>
+
+    <!-- SUCCESS MODAL POPUP -->
+    <div id="thank-you-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel bg-slate-900/90 border border-white/20 rounded-3xl p-8 max-w-md w-full text-center transform scale-95 transition-transform duration-300 shadow-2xl">
+            <div class="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 text-4xl flex items-center justify-center mx-auto mb-4 animate-bounce">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h3 class="text-2xl font-extrabold text-white mb-2">Жауабыңыз қабылданды!</h3>
+            <p class="text-slate-300 text-sm mb-6">
+                Кері байланыс бергеніңіз үшін рақмет. Келесі оқушы өз жауабын белгілей алады.
+            </p>
+            <button onclick="closeModal()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-base shadow-lg hover:brightness-110 active:scale-95 transition">
+                Жалғастыру
+            </button>
+        </div>
+    </div>
+
+    <!-- RESET CONFIRMATION MODAL -->
+    <div id="reset-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="glass-panel bg-slate-900/90 border border-white/20 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl">
+            <div class="w-16 h-16 rounded-full bg-rose-500/20 border border-rose-400/40 text-rose-400 text-3xl flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Барлық нәтижелерді нөлдеу?</h3>
+            <p class="text-slate-300 text-sm mb-6">
+                Бұл әрекет осы сабақта жиналған барлық дауыстарды өшіреді. Бұл қайтарылмайды.
+            </p>
+            <div class="flex gap-3">
+                <button onclick="closeResetModal()" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition">
+                    Бас тарту
+                </button>
+                <button onclick="executeReset()" class="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition shadow-lg">
+                    Иә, нөлдеу
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Data Structure for Options
+        const optionsData = [
+            { id: 0, title: "Толық түсіндім", icon: "🚀", color: "#10b981", theme: "theme-opt-1" },
+            { id: 1, title: "Жақсы меңгердім", icon: "💡", color: "#0ea5e9", theme: "theme-opt-2" },
+            { id: 2, title: "Сұрақтарым бар", icon: "🤔", color: "#f59e0b", theme: "theme-opt-3" },
+            { id: 3, title: "Материал күрделі", icon: "⚡", color: "#a855f7", theme: "theme-opt-4" },
+            { id: 4, title: "Қайта қарау керек", icon: "🔄", color: "#f43f5e", theme: "theme-opt-5" }
+        ];
+
+        // State
+        let votes = [0, 0, 0, 0, 0];
+        let activeTheme = 'theme-default';
+        let feedbackChart = null;
+
+        // Initialize state on load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            updateCounters();
+            initChart();
+            renderStatsList();
+        });
+
+        // Background Hover preview for Dynamic Visual Effect
+        function previewTheme(themeClass) {
+            const body = document.getElementById('app-body');
+            body.className = `${themeClass} bg-gradient-transition min-h-screen text-white flex flex-col justify-between overflow-x-hidden select-none`;
+        }
+
+        function resetThemePreview() {
+            const body = document.getElementById('app-body');
+            body.className = `${activeTheme} bg-gradient-transition min-h-screen text-white flex flex-col justify-between overflow-x-hidden select-none`;
+        }
+
+        // Handle Touch / Click Ripple Effect on Smartboards
+        function submitVote(optionIndex, themeClass, event) {
+            // Add Ripple Effect
+            const button = event.currentTarget;
+            const circle = document.createElement("span");
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+
+            const rect = button.getBoundingClientRect();
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - rect.left - radius}px`;
+            circle.style.top = `${event.clientY - rect.top - radius}px`;
+            circle.classList.add("ripple");
+
+            const ripple = button.getElementsByClassName("ripple")[0];
+            if (ripple) {
+                ripple.remove();
+            }
+            button.appendChild(circle);
+
+            // Update Vote
+            votes[optionIndex]++;
+            activeTheme = themeClass;
+            saveState();
+            updateCounters();
+            updateChart();
+            renderStatsList();
+
+            // Set permanent theme until reset or next hover
+            previewTheme(themeClass);
+
+            // Show Success Modal
+            openModal();
+        }
+
+        // Modal Controls
+        function openModal() {
+            const modal = document.getElementById('thank-you-modal');
+            const card = modal.querySelector('div');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+
+            // Auto close after 2.5 seconds for quick classroom flow
+            setTimeout(() => {
+                closeModal();
+            }, 2500);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('thank-you-modal');
+            const card = modal.querySelector('div');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+        }
+
+        // Reset Logic
+        function confirmReset() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function executeReset() {
+            votes = [0, 0, 0, 0, 0];
+            activeTheme = 'theme-default';
+            saveState();
+            updateCounters();
+            updateChart();
+            renderStatsList();
+            resetThemePreview();
+            closeResetModal();
+        }
+
+        // Counter UI Updates
+        function updateCounters() {
+            const total = votes.reduce((a, b) => a + b, 0);
+            document.getElementById('footer-vote-counter').innerText = total;
+            document.getElementById('total-votes-count-dashboard').innerText = total;
+        }
+
+        // Mode Switcher (Student View vs Teacher Analytics)
+        function switchMode(mode) {
+            const studentView = document.getElementById('student-view');
+            const teacherView = document.getElementById('teacher-view');
+            const btnStudent = document.getElementById('btn-student-mode');
+            const btnTeacher = document.getElementById('btn-teacher-mode');
+
+            if (mode === 'student') {
+                teacherView.classList.add('hidden');
+                studentView.classList.remove('hidden');
+                
+                btnStudent.className = "px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-white/20 text-white shadow-md";
+                btnTeacher.className = "px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 text-slate-300 hover:text-white hover:bg-white/10";
+            } else {
+                studentView.classList.add('hidden');
+                teacherView.classList.remove('hidden');
+
+                btnTeacher.className = "px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 bg-white/20 text-white shadow-md";
+                btnStudent.className = "px-4 py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 text-slate-300 hover:text-white hover:bg-white/10";
+                
+                // Refresh chart size on view switch
+                if (feedbackChart) {
+                    feedbackChart.resize();
+                }
+            }
+        }
+
+        // Fullscreen Toggle for Smartboard
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Render Detailed Breakdown List in Teacher View
+        function renderStatsList() {
+            const container = document.getElementById('stats-list');
+            const total = votes.reduce((a, b) => a + b, 0);
+
+            container.innerHTML = optionsData.map((opt, index) => {
+                const count = votes[index];
+                const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+
+                return `
+                    <div class="glass-panel p-3 rounded-2xl flex flex-col gap-2">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="font-medium text-slate-200 flex items-center gap-2">
+                                <span>${opt.icon}</span> ${opt.title}
+                            </span>
+                            <span class="font-bold text-white">${count} оқушы (${percentage}%)</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500" 
+                                 style="width: ${percentage}%; background-color: ${opt.color}"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Chart.js Setup for Teacher Dashboard
+        function initChart() {
+            const ctx = document.getElementById('feedbackChart').getContext('2d');
+            
+            Chart.defaults.color = '#cbd5e1';
+            Chart.defaults.font.family = 'Inter';
+
+            feedbackChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: optionsData.map(o => `${o.icon} ${o.title}`),
+                    datasets: [{
+                        label: 'Оқушылар саны',
+                        data: votes,
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(14, 165, 233, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(168, 85, 247, 0.7)',
+                            'rgba(244, 63, 94, 0.7)'
+                        ],
+                        borderColor: [
+                            '#10b981',
+                            '#0ea5e9',
+                            '#f59e0b',
+                            '#a855f7',
+                            '#f43f5e'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 12,
+                            cornerRadius: 12
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: { size: 12 }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.08)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 11, weight: '500' }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (feedbackChart) {
+                feedbackChart.data.datasets[0].data = votes;
+                feedbackChart.update();
+            }
+        }
+
+        // Local Storage Persistence
+        function saveState() {
+            localStorage.setItem('hs_feedback_votes', JSON.stringify(votes));
+            localStorage.setItem('hs_feedback_theme', activeTheme);
+        }
+
+        function loadState() {
+            const savedVotes = localStorage.getItem('hs_feedback_votes');
+            const savedTheme = localStorage.getItem('hs_feedback_theme');
+
+            if (savedVotes) {
+                votes = JSON.parse(savedVotes);
+            }
+            if (savedTheme) {
+                activeTheme = savedTheme;
+                previewTheme(activeTheme);
+            }
+        }
+    </script>
+</body>
+</html>
